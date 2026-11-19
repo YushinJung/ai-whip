@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f4ece2">
+<title>AI 채찍 설치 안내</title>
+<style>
+  :root {
+    --paper: #f4ece2;
+    --card: #fffaf3;
+    --ink: #1f1814;
+    --dim: #6d5f52;
+    --line: #dccfbe;
+    --accent: #d8431f;
+    --accent-soft: #fde4da;
+    --ok: #2f7a4b;
+    --ok-soft: #dff0e4;
+    --warn-bg: #fff3c9;
+    --warn-line: #e2b93b;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    font-size: 18px; line-height: 1.65; word-break: keep-all;
+  }
+  .wrap { max-width: 680px; margin: 0 auto; padding: 0 18px 80px; }
+
+  header { padding: 36px 0 8px; }
+  .eyebrow { font-size: 14px; letter-spacing: .08em; color: var(--accent); font-weight: 700; }
+  h1 { font-size: 34px; line-height: 1.25; margin: 6px 0 10px; letter-spacing: -.02em; text-wrap: balance; }
+  .lead { color: var(--dim); margin: 0; }
+
+  /* 진행 표시 */
+  .progress {
+    position: sticky; top: 0; z-index: 5; background: var(--paper);
+    padding: 12px 0 10px; border-bottom: 1px solid var(--line); margin-bottom: 22px;
+  }
+  .progress-row { display: flex; justify-content: space-between; font-size: 14px; color: var(--dim); margin-bottom: 6px; }
+  .progress-row b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .bar { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .25s; }
+
+  h2 { font-size: 22px; margin: 34px 0 10px; letter-spacing: -.01em; }
+  p { margin: 0 0 12px; }
+
+  .note {
+    background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 14px;
+    padding: 14px 16px; margin: 18px 0;
+  }
+  .note strong { display: block; margin-bottom: 4px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 16px; margin: 8px 0 4px; }
+  th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 13px; color: var(--dim); font-weight: 600; }
+  .yes { color: var(--ok); font-weight: 700; white-space: nowrap; }
+  .no { color: var(--accent); font-weight: 700; white-space: nowrap; }
+
+  /* 단계 카드 */
+  .step {
+    background: var(--card); border: 1px solid var(--line); border-radius: 18px;
+    padding: 20px 18px 16px; margin: 16px 0; scroll-margin-top: 70px;
+  }
+  .step.done { border-color: var(--ok); background: var(--ok-soft); }
+  .step-head { display: flex; gap: 12px; align-items: center; margin-bottom: 4px; }
+  .num {
+    flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--ink); color: var(--paper);
+    display: grid; place-items: center; font-weight: 800; font-size: 19px;
+  }
+  .step.done .num { background: var(--ok); }
+  .step h3 { font-size: 21px; margin: 0; line-height: 1.3; }
+  .why { color: var(--dim); font-size: 16px; margin: 6px 0 12px; }
+  h4 { font-size: 17px; margin: 18px 0 8px; padding: 6px 12px; background: var(--ink); color: var(--paper); border-radius: 9px; display: inline-block; }
+  ol { margin: 0 0 12px; padding-left: 1.5em; }
+  ol li { margin-bottom: 9px; padding-left: 4px; }
+  ol li::marker { font-weight: 700; color: var(--accent); }
+  .tap {
+    display: inline-block; background: var(--accent-soft); color: #8a2a12; font-weight: 700;
+    border-radius: 7px; padding: 0 7px; white-space: nowrap;
+  }
+  .path {
+    display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 4px 0 14px;
+    font-size: 15px;
+  }
+  .path span { background: #efe3d3; border-radius: 8px; padding: 4px 9px; }
+  .path em { font-style: normal; color: var(--dim); }
+  .aside { font-size: 16px; color: var(--dim); border-left: 3px solid var(--line); padding-left: 12px; margin: 12px 0; }
+  .aside b { color: var(--ink); }
+
+  .btn {
+    display: block; text-align: center; text-decoration: none; background: var(--accent); color: #fff;
+    font-weight: 800; border-radius: 14px; padding: 15px; margin: 6px 0 14px; font-size: 18px;
+  }
+  .btn:active { transform: scale(.985); }
+
+  label.check {
+    display: flex; align-items: center; gap: 12px; margin-top: 10px; padding: 13px 14px;
+    border: 2px solid var(--line); border-radius: 13px; background: #fff; font-weight: 700; cursor: pointer;
+  }
+  .step.done label.check { border-color: var(--ok); }
+  label.check input { width: 24px; height: 24px; accent-color: var(--ok); flex: none; }
+
+  details {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px; margin: 10px 0; padding: 0 16px;
+  }
+  summary { font-weight: 700; padding: 14px 0; cursor: pointer; }
+  details[open] summary { border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+  details p:last-child, details ol:last-child { margin-bottom: 14px; }
+
+  .finish {
+    display: none; background: var(--ok); color: #fff; border-radius: 18px; padding: 20px 18px; margin: 20px 0;
+  }
+  .finish.on { display: block; }
+  .finish h3 { margin: 0 0 6px; font-size: 22px; }
+  .finish p { margin: 0; }
+
+  footer { margin-top: 40px; font-size: 14px; color: var(--dim); border-top: 1px solid var(--line); padding-top: 16px; }
+  footer a { color: inherit; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">설치 안내</div>
+  <h1>AI 채찍을 설치하는 6단계</h1>
+  <p class="lead">약 5분이 걸립니다. 한 단계를 끝낼 때마다 아래의 “끝냈어요”를 누르세요.</p>
+</header>
+
+<div class="progress" aria-live="polite">
+  <div class="progress-row"><span>진행 상황</span><b><span id="cnt">0</span> / 6 단계</b></div>
+  <div class="bar"><i id="barFill"></i></div>
+</div>
+
+<div class="note">
+  <strong>먼저 읽어 주세요</strong>
+  이 안내는 AI 채찍에만 쓰세요. 문자나 메신저로 받은 다른 앱이 같은 절차를 요구하면 사기일 가능성이 높습니다. 그런 앱은 설치하지 마세요.
+</div>
+
+<h2>설치할 때 경고가 뜨는 이유</h2>
+<p>AI 채찍은 Play 스토어에 없는 앱입니다. 그리고 “접근성”이라는 강한 권한을 씁니다. 이 권한은 화면을 읽고 다른 앱을 대신 조작할 수 있습니다.</p>
+<p>사기 앱이 이 권한을 자주 악용합니다. 그래서 안드로이드는 스토어 밖에서 받은 앱이 이 권한을 쓰면 설치를 막습니다. 앱이 악성으로 판정된 것은 아닙니다. 권한의 종류만 보고 막는 규칙입니다.</p>
+
+<h2>이 앱이 하는 일과 하지 않는 일</h2>
+<table>
+  <tr><th>구분</th><th>내용</th></tr>
+  <tr><td class="yes">합니다</td><td>고른 앱이 화면에 떠 있는지 확인합니다</td></tr>
+  <tr><td class="yes">합니다</td><td>그 앱 위에 채찍 그림을 그립니다</td></tr>
+  <tr><td class="yes">합니다</td><td>그 앱의 입력창에 정해 둔 문구를 넣습니다</td></tr>
+  <tr><td class="no">안 합니다</td><td>인터넷에 연결하지 않습니다. 인터넷 권한이 없습니다</td></tr>
+  <tr><td class="no">안 합니다</td><td>화면 내용을 저장하지 않습니다</td></tr>
+  <tr><td class="no">안 합니다</td><td>고른 앱이 아닌 곳에서는 동작하지 않습니다</td></tr>
+</table>
+
+<h2>따라 하기</h2>
+
+<!-- 1 -->
+<section class="step" id="s1">
+  <div class="step-head"><div class="num">1</div><h3>앱 파일 받기</h3></div>
+  <p class="why">스토어에 없는 앱이라 파일로 받습니다.</p>
+  <a class="btn" href="https://github.com/YushinJung/ai-whip/releases/latest" target="_blank" rel="noopener">다운로드 페이지 열기</a>
+  <ol>
+    <li>위 버튼을 누르세요.</li>
+    <li>열린 페이지에서 <span class="tap">ai-whip.apk</span>를 누르세요.</li>
+    <li>“유해할 수 있는 파일”이라고 물으면 <span class="tap">무시하고 다운로드</span>를 누르세요.</li>
+    <li>이 안내 화면으로 돌아오세요.</li>
+  </ol>
+  <label class="check"><input type="checkbox" data-step="1">끝냈어요</label>
+</section>
+
+<!-- 2 -->
+<section class="step" id="s2">
+  <div class="step-head"><div class="num">2</div><h3>Play 프로텍트 잠시 끄기</h3></div>
+  <p class="why">켜져 있으면 설치가 막힙니다. 4단계에서 다시 켭니다.</p>
+  <div class="path"><span>Play 스토어</span><em>→</em><span>프로필 아이콘</span><em>→</em><span>Play 프로텍트</span><em>→</em><span>톱니바퀴</span></div>
+  <ol>
+    <li><span class="tap">Play 스토어</span> 앱을 여세요.</li>
+    <li>오른쪽 위의 동그란 <span class="tap">프로필 아이콘</span>을 누르세요.</li>
+    <li><span class="tap">Play 프로텍트</span>를 누르세요.</li>
+    <li>오른쪽 위의 <span class="tap">톱니바퀴</span>를 누르세요.</li>
+    <li><span class="tap">Play 프로텍트로 앱 검사</span> 스위치를 끄세요.</li>
+    <li>확인 창에서 <span class="tap">사용 중지</span>를 누르세요.</li>
+  </ol>
+  <label class="check"><input type="checkbox" data-step="2">끝냈어요</label>
+</section>
+
+<!-- 3 -->
+<section class="step" id="s3">
+  <div class="step-head"><div class="num">3</div><h3>앱 설치하기</h3></div>
+  <p class="why">처음 한 번은 “이 출처 허용”이 필요합니다.</p>
+  <ol>
+    <li>받은 <span class="tap">ai-whip.apk</span> 파일을 여세요. 화면 위의 알림이나 “내 파일” 앱의 Download 폴더에 있습니다.</li>
+    <li>“이 출처의 앱을 설치할 수 없습니다”가 뜨면 <span class="tap">설정</span>을 누르세요.</li>
+    <li><span class="tap">이 출처 허용</span> 스위치를 켜세요.</li>
+    <li>뒤로 가기를 누르세요.</li>
+    <li><span class="tap">설치</span>를 누르세요.</li>
+    <li>설치가 끝나면 <span class="tap">완료</span>를 누르세요. “열기”는 아직 누르지 마세요.</li>
+  </ol>
+  <details>
+    <summary>삼성 폰에서 “보안 위험 자동 차단”이 떠요</summary>
+    <ol>
+      <li><span class="tap">설정</span> 앱을 여세요.</li>
+      <li><span class="tap">보안 및 개인정보 보호</span>를 누르세요.</li>
+      <li><span class="tap">보안 위험 자동 차단</span>을 누르세요.</li>
+      <li>스위치를 끄세요.</li>
+      <li>이 단계의 1번부터 다시 하세요.</li>
+      <li>설치가 끝나면 이 스위치를 다시 켜세요.</li>
+    </ol>
+  </details>
+  <label class="check"><input type="checkbox" data-step="3">끝냈어요</label>
+</section>
+
+<!-- 4 -->
+<section class="step" id="s4">
+  <div class="step-head"><div class="num">4</div><h3>Play 프로텍트 다시 켜기</h3></div>
+  <p class="why">이 단계를 건너뛰지 마세요. 꺼 두면 다른 앱도 검사받지 못합니다.</p>
+  <div class="path"><span>Play 스토어</span><em>→</em><span>프로필 아이콘</span><em>→</em><span>Play 프로텍트</span><em>→</em><span>톱니바퀴</span></div>
+  <ol>
+    <li>2단계와 같은 화면으로 가세요.</li>
+    <li><span class="tap">Play 프로텍트로 앱 검사</span> 스위치를 켜세요.</li>
+  </ol>
+  <p class="aside">다시 켠 뒤 AI 채찍에 경고가 뜰 수 있습니다. 경고가 뜨면 <b>앱 유지</b>를 고르면 계속 쓸 수 있습니다.</p>
+  <label class="check"><input type="checkbox" data-step="4">끝냈어요</label>
+</section>
+
+<!-- 5 -->
+<section class="step" id="s5">
+  <div class="step-head"><div class="num">5</div><h3>접근성 서비스 켜기</h3></div>
+  <p class="why">이 권한이 있어야 앱이 동작합니다. 안드로이드가 스위치를 막아 두었으므로 먼저 제한을 풀어야 합니다.</p>
+
+  <h4>먼저, 제한 풀기</h4>
+  <ol>
+    <li><span class="tap">AI 채찍</span> 앱을 여세요.</li>
+    <li><span class="tap">앱 정보 열기 (제한된 설정 허용)</span>를 누르세요.</li>
+    <li>오른쪽 위의 <span class="tap">⋮</span>(점 세 개)를 누르세요.</li>
+    <li><span class="tap">제한된 설정 허용</span>을 누르세요.</li>
+    <li>잠금 비밀번호나 지문을 입력하세요.</li>
+    <li>뒤로 가기를 눌러 AI 채찍 앱으로 돌아오세요.</li>
+  </ol>
+  <details>
+    <summary>점 세 개(⋮)가 안 보여요</summary>
+    <p>아래 “그다음, 스위치 켜기”를 먼저 한 번 하세요. 스위치를 누르면 “제한된 설정” 안내 창이 뜹니다. 그 창을 닫은 뒤 “먼저, 제한 풀기”를 다시 하면 점 세 개가 보입니다.</p>
+  </details>
+
+  <h4>그다음, 스위치 켜기</h4>
+  <ol>
+    <li>AI 채찍 앱에서 <span class="tap">접근성 설정 열기</span>를 누르세요.</li>
+    <li><span class="tap">설치된 앱</span>을 누르세요. 폰에 따라 이름이 “다운로드한 앱”입니다.</li>
+    <li><span class="tap">AI 채찍</span>을 누르세요.</li>
+    <li>맨 위의 <span class="tap">꺼짐</span> 스위치를 켜세요.</li>
+    <li>안내 창에서 <span class="tap">허용</span>을 누르세요.</li>
+    <li>뒤로 가기를 눌러 AI 채찍 앱으로 돌아오세요.</li>
+    <li>상태가 <span class="tap">켜짐 — 준비 완료</span>인지 확인하세요.</li>
+  </ol>
+  <p class="aside">같은 화면의 <b>AI 채찍 바로가기</b>는 켜지 않아도 됩니다.</p>
+  <label class="check"><input type="checkbox" data-step="5">끝냈어요</label>
+</section>
+
+<!-- 6 -->
+<section class="step" id="s6">
+  <div class="step-head"><div class="num">6</div><h3>설정하고 휘둘러 보기</h3></div>
+  <p class="why">처음에는 자동 전송을 끄고 확인하세요.</p>
+  <ol>
+    <li>AI 채찍 앱에서 <span class="tap">앱 선택</span>을 누르세요.</li>
+    <li>혼낼 앱을 고르세요.</li>
+    <li>보낼 문구를 확인하세요. 원하는 말로 바꿀 수 있습니다.</li>
+    <li><span class="tap">몇 번 휘두르면 보낼지</span>를 고르세요.</li>
+    <li><span class="tap">전송 버튼까지 자동으로 누르기</span>를 끄세요.</li>
+    <li><span class="tap">채찍 테스트</span>를 누르세요. 채찍 그림과 “짝” 소리가 나오면 정상입니다.</li>
+    <li>혼낼 앱을 여세요. 화면 아래에 “채찍 준비됨”이 잠깐 뜹니다.</li>
+    <li>폰을 단단히 쥐고 채찍처럼 세게 휘두르세요.</li>
+    <li>고른 횟수만큼 휘두른 뒤 입력창에 문구가 들어갔는지 확인하세요.</li>
+    <li>문구가 잘 들어가면 AI 채찍 앱에서 자동 전송을 켜세요.</li>
+  </ol>
+  <p class="aside">정한 시간(기본 5초) 동안 휘두르지 않으면 채찍이 사라지고 화면 오른쪽 위에 <b>작은 동그란 아이콘</b>이 남습니다. 아이콘을 누르면 채찍이 돌아옵니다. 시간은 AI 채찍 앱의 “채찍이 접히는 시간”에서 바꿉니다.</p>
+  <p class="aside"><b>주의:</b> 주변 사람과 1 m 이상 떨어지세요. 폰을 떨어뜨리지 않게 꼭 쥐세요.</p>
+  <label class="check"><input type="checkbox" data-step="6">끝냈어요</label>
+</section>
+
+<div class="finish" id="finish">
+  <h3>설치가 끝났습니다</h3>
+  <p>Play 프로텍트가 다시 켜져 있는지 한 번 더 확인하세요.</p>
+</div>
+
+<h2>막힐 때</h2>
+<details>
+  <summary>설치 중 “기기 보호를 위해 앱 차단됨”이 떠요</summary>
+  <p>Play 프로텍트가 켜져 있습니다. 2단계를 다시 하세요.</p>
+</details>
+<details>
+  <summary>“채찍 테스트”를 눌러도 반응이 없어요</summary>
+  <p>AI 채찍 앱의 상태가 “꺼짐”이면 5단계를 다시 하세요.</p>
+</details>
+<details>
+  <summary>혼낼 앱에서 “채찍 준비됨”이 안 떠요</summary>
+  <p>혼낼 앱을 올바르게 골랐는지 확인하세요. 그래도 안 되면 접근성 서비스를 껐다가 다시 켜세요.</p>
+</details>
+<details>
+  <summary>채찍이 사라졌어요</summary>
+  <p>정한 시간(기본 5초) 동안 휘두르지 않으면 채찍이 접힙니다. 화면 오른쪽 위의 작은 동그란 아이콘을 누르면 돌아옵니다. 너무 빨리 접히면 AI 채찍 앱에서 시간을 늘리세요.</p>
+</details>
+<details>
+  <summary>세게 휘둘러도 채찍이 안 나와요</summary>
+  <p>먼저 화면 오른쪽 위에 작은 아이콘이 있는지 보세요. 있으면 아이콘을 눌러 채찍을 켜세요. 아이콘이 없는데도 안 나오면 AI 채찍 앱에서 흔들기 감도를 “민감”으로 바꾸세요. 살짝 움직여도 채찍이 나오면 “둔감”으로 바꾸세요.</p>
+</details>
+<details>
+  <summary>문구가 입력창에 안 들어가요</summary>
+  <p>문구는 복사되어 있습니다. 입력창을 길게 눌러 “붙여넣기”를 누르세요.</p>
+</details>
+<details>
+  <summary>문구는 들어가는데 전송이 안 돼요</summary>
+  <p>전송 버튼을 직접 누르세요. 앱에 따라 전송 버튼을 찾지 못합니다.</p>
+</details>
+<details>
+  <summary>업데이트한 뒤로 안 돼요</summary>
+  <p>접근성 서비스를 껐다가 다시 켜세요.</p>
+</details>
+
+<h2>끄거나 지우고 싶을 때</h2>
+<details>
+  <summary>잠시 끄기</summary>
+  <div class="path"><span>설정</span><em>→</em><span>접근성</span><em>→</em><span>설치된 앱</span><em>→</em><span>AI 채찍</span></div>
+  <p>스위치를 끄세요.</p>
+</details>
+<details>
+  <summary>완전히 지우기</summary>
+  <div class="path"><span>설정</span><em>→</em><span>애플리케이션</span><em>→</em><span>AI 채찍</span><em>→</em><span>삭제</span></div>
+  <p>앱을 지우면 접근성 권한도 함께 사라집니다.</p>
+</details>
+
+<footer>
+  <p>메뉴 이름은 삼성 폰 기준입니다. 폰 제조사와 안드로이드 버전에 따라 이름과 위치가 다릅니다.</p>
+  <p>AI 채찍은 개인이 만든 장난용 앱입니다. 특정 AI 서비스와 관계가 없습니다. 소스 코드와 PC로 설치하는 방법은 <a href="https://github.com/YushinJung/ai-whip" target="_blank" rel="noopener">GitHub 저장소</a>에 있습니다.</p>
+</footer>
+
+</div>
+<script>
+(function () {
+  'use strict';
+  var KEY = 'aiwhip_install_steps';
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('input[data-step]'));
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { saved = {}; }
+
+  function render() {
+    var done = 0;
+    boxes.forEach(function (b) {
+      var sec = document.getElementById('s' + b.dataset.step);
+      if (b.checked) { done++; sec.classList.add('done'); } else { sec.classList.remove('done'); }
+    });
+    document.getElementById('cnt').textContent = String(done);
+    document.getElementById('barFill').style.width = (done / boxes.length * 100) + '%';
+    document.getElementById('finish').classList.toggle('on', done === boxes.length);
+  }
+
+  boxes.forEach(function (b) {
+    b.checked = !!saved[b.dataset.step];
+    b.addEventListener('change', function () {
+      saved[b.dataset.step] = b.checked;
+      try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) { /* 저장 실패는 무시 */ }
+      render();
+      if (b.checked) {
+        var next = document.getElementById('s' + (parseInt(b.dataset.step, 10) + 1));
+        var target = next || document.getElementById('finish');
+        var smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        setTimeout(function () { target.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' }); }, 150);
+      }
+    });
+  });
+  render();
+})();
+</script>
+</body>
+</html>

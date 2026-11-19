@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AI 채찍</string>
+    <string name="service_label">AI 채찍</string>
+    <string name="service_desc">선택한 앱이 화면에 떠 있을 때 폰을 흔들면 그 위에 채찍을 그리고, 설정한 문구를 그 앱 입력창에 넣습니다. 화면 내용은 입력창과 전송 버튼을 찾는 데만 쓰며, 저장하거나 밖으로 보내지 않습니다(인터넷 권한 없음).</string>
+    <string name="default_message">방금 답변은 틀렸거나 내가 요청한 것과 달라. 근거를 다시 확인하고, 모르는 건 모른다고 말해 줘.</string>
+</resources>

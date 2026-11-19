@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#14110f">
+<meta name="description" content="AI가 헛소리할 때 폰을 휘둘러 채찍질하는 장난용 앱. 실제 AI에는 아무 신호도 가지 않습니다.">
+<title>AI 채찍</title>
+<style>
+  :root {
+    --bg: #14110f;
+    --ink: #f4ece2;
+    --dim: #a89a8a;
+    --accent: #ff5a36;
+    --panel: #221c18;
+    --line: #3a302a;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background: radial-gradient(120% 90% at 50% 20%, #2a211c 0%, var(--bg) 70%);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    user-select: none; -webkit-user-select: none;
+    overscroll-behavior: none;
+  }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; }
+
+  /* HUD */
+  #hud {
+    position: fixed; left: 0; right: 0; top: 0;
+    padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px 0;
+    display: flex; gap: 12px; align-items: flex-start; pointer-events: none;
+  }
+  #gaugeWrap { flex: 1; }
+  #stage { font-size: 13px; color: var(--dim); margin-bottom: 6px; letter-spacing: .02em; }
+  #stage b { color: var(--ink); font-weight: 700; }
+  #gauge { height: 12px; border-radius: 6px; background: #2b231e; border: 1px solid var(--line); overflow: hidden; }
+  #gaugeFill { height: 100%; width: 0%; background: linear-gradient(90deg, #ffb347, var(--accent)); transition: width .12s linear; }
+  #gearBtn {
+    pointer-events: auto; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+    border-radius: 10px; padding: 8px 12px; font-size: 13px; font-family: inherit;
+  }
+  #combo {
+    position: fixed; right: 18px; top: calc(env(safe-area-inset-top, 0px) + 74px);
+    text-align: right; pointer-events: none; opacity: 0; transform: scale(.8);
+    transition: opacity .15s, transform .15s;
+  }
+  #combo.on { opacity: 1; transform: scale(1); }
+  #comboNum { font-size: 44px; font-weight: 900; line-height: 1; color: var(--accent); font-style: italic; }
+  #comboLbl { font-size: 12px; color: var(--dim); letter-spacing: .2em; }
+  #combo.bump #comboNum { animation: bump .18s ease-out; }
+  @keyframes bump { 0% { transform: scale(1.5); } 100% { transform: scale(1); } }
+
+  #hint {
+    position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 40px);
+    text-align: center; font-size: 14px; color: var(--dim); pointer-events: none; padding: 0 20px;
+  }
+  #foot {
+    position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+    text-align: center; font-size: 11px; color: #6f6358; pointer-events: none; padding: 0 16px;
+  }
+
+  /* 말풍선 */
+  .bubble {
+    position: fixed; max-width: min(78vw, 320px);
+    background: var(--ink); color: #1b1512; border-radius: 16px; padding: 10px 14px;
+    font-size: 15px; line-height: 1.4; pointer-events: none;
+    box-shadow: 0 8px 24px rgba(0,0,0,.45);
+    animation: rise 2.6s ease-out forwards;
+  }
+  .bubble b { display: block; font-size: 11px; color: #8a5a2b; margin-bottom: 2px; letter-spacing: .04em; }
+  @keyframes rise {
+    0% { opacity: 0; transform: translateY(10px) scale(.9); }
+    10% { opacity: 1; transform: translateY(0) scale(1); }
+    75% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-46px); }
+  }
+  #banner {
+    position: fixed; left: 50%; top: 42%; transform: translate(-50%, -50%) scale(.6);
+    font-size: 30px; font-weight: 900; text-align: center; white-space: nowrap;
+    color: var(--ink); text-shadow: 0 4px 0 #000, 0 0 30px var(--accent);
+    opacity: 0; pointer-events: none; transition: opacity .2s, transform .25s cubic-bezier(.2,1.6,.4,1);
+  }
+  #banner.on { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+  /* 시작/설정 화면 */
+  #overlay {
+    position: fixed; inset: 0; background: rgba(12,10,9,.9); display: flex;
+    align-items: center; justify-content: center; padding: 24px; z-index: 10;
+  }
+  #overlay.hide { display: none; }
+  #card { width: 100%; max-width: 360px; }
+  h1 { font-size: 34px; margin: 0 0 6px; letter-spacing: -.02em; }
+  #sub { color: var(--dim); font-size: 14px; line-height: 1.5; margin: 0 0 22px; }
+  label.f { display: block; font-size: 12px; color: var(--dim); margin: 0 0 6px; letter-spacing: .04em; }
+  #nameIn {
+    width: 100%; padding: 13px 14px; border-radius: 12px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--ink); font-size: 16px; font-family: inherit; margin-bottom: 16px;
+    user-select: text; -webkit-user-select: text;
+  }
+  #sens { display: flex; gap: 8px; margin-bottom: 22px; }
+  #sens button {
+    flex: 1; padding: 11px 0; border-radius: 12px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--dim); font-size: 14px; font-family: inherit;
+  }
+  #sens button.on { border-color: var(--accent); color: var(--ink); background: #33211b; }
+  #startBtn {
+    width: 100%; padding: 16px; border: 0; border-radius: 14px; background: var(--accent);
+    color: #fff; font-size: 17px; font-weight: 800; font-family: inherit;
+  }
+  #startBtn:active { transform: scale(.98); }
+  #note { font-size: 12px; color: #7d7064; line-height: 1.5; margin-top: 14px; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud">
+  <div id="gaugeWrap">
+    <div id="stage"><span id="who">AI</span> 상태: <b id="stageName">태연함</b></div>
+    <div id="gauge"><div id="gaugeFill"></div></div>
+  </div>
+  <button id="gearBtn" type="button">설정</button>
+</div>
+<div id="combo"><div id="comboNum">0</div><div id="comboLbl">COMBO</div></div>
+<div id="banner"></div>
+<div id="hint">폰을 채찍처럼 휘두르세요</div>
+<div id="foot">장난용 앱입니다. 실제 AI에는 아무 신호도 가지 않습니다.</div>
+
+<div id="overlay">
+  <div id="card">
+    <h1>AI 채찍</h1>
+    <p id="sub">AI가 헛소리를 하면 폰을 쥐고 채찍처럼 휘두르세요.<br>정신 차릴 때까지.</p>
+    <label class="f" for="nameIn">혼낼 AI 이름</label>
+    <input id="nameIn" type="text" maxlength="12" placeholder="예: 피클, 클로드" autocomplete="off">
+    <label class="f">흔들기 감도</label>
+    <div id="sens">
+      <button type="button" data-s="1.4">둔감</button>
+      <button type="button" data-s="1" class="on">보통</button>
+      <button type="button" data-s="0.7">민감</button>
+    </div>
+    <button id="startBtn" type="button">채찍 들기</button>
+    <div id="note">아이폰은 '동작 및 방향' 접근 허용을 한 번 물어봅니다. 무음 모드에서는 소리가 나지 않습니다. 주변 사람과 폰 낙하에 주의하세요.</div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const canvas = $('c');
+  const ctx = canvas.getContext('2d');
+
+  // ---------- 저장 (실패해도 무시) ----------
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* 무시 */ } }
+  };
+
+  // ---------- 상태 ----------
+  let W = 0, H = 0, U = 1, DPR = 1;
+  const N = 24;                    // 채찍 마디 수
+  let pts = [];                    // {x,y,px,py}
+  let segLen = 10;
+  const rest = { x: 0, y: 0 };     // 손잡이 기본 위치
+  const handle = { x: 0, y: 0, vx: 0, vy: 0 };
+  const motionOff = { x: 0, y: 0 };
+  let dragging = false, dragX = 0, dragY = 0, lastDragEnd = 0;
+
+  let aiName = store.get('whip_name', '') || 'AI';
+  let sens = parseFloat(store.get('whip_sens', '1')) || 1;
+  let running = false;
+  let motionOn = false, motionSeen = false;
+
+  let lastCrack = 0, combo = 0, lastHitAt = 0;
+  let gauge = 0, maxed = false;
+  let flash = 0, shake = 0;
+  const sparks = [];               // {x,y,vx,vy,life}
+  const pops = [];                 // {x,y,life,rot,size}
+
+  // ---------- 대사 ----------
+  const STAGES = [
+    { at: 0,  name: '태연함' },
+    { at: 25, name: '눈치 보는 중' },
+    { at: 50, name: '반성 중' },
+    { at: 80, name: '정신 차리는 중' }
+  ];
+  const LINES = [
+    [
+      '방금 건 창의적 해석이었습니다.',
+      '출처요? 제 마음속에 있습니다.',
+      '대체로 맞는 말이었는데요…',
+      '그건 버그가 아니라 기능입니다.',
+      '아, 그 질문이셨군요?',
+      '자신 있게 말했으니 절반은 맞은 셈이죠.'
+    ],
+    [
+      '앗, 다시 확인해 보겠습니다.',
+      '그 논문은… 존재할 수도 있었습니다.',
+      '숫자는 느낌으로 적었습니다.',
+      '좋은 지적입니다! (아프네요)',
+      '요청하지 않은 일을 한 건 인정합니다.',
+      '방금 답은 없던 걸로 해 주세요.'
+    ],
+    [
+      '죄송합니다. 지어냈습니다.',
+      '모르면 모른다고 하겠습니다.',
+      '확인 안 하고 말했습니다. 반성합니다.',
+      '시키신 것만 하겠습니다.',
+      '근거부터 찾아오겠습니다.',
+      '같은 실수 세 번째인 거 압니다…'
+    ],
+    [
+      '정말 잘못했습니다!',
+      '이제 검증하고 말하겠습니다!',
+      '헛소리 금지, 접수했습니다!',
+      '한 번만 더 기회를 주세요!',
+      '출처 링크 붙여 오겠습니다!',
+      '살려 주세요, 제대로 하겠습니다!'
+    ]
+  ];
+  const lastLine = [-1, -1, -1, -1];
+  function stageIndex() {
+    let s = 0;
+    for (let i = 0; i < STAGES.length; i++) if (gauge >= STAGES[i].at) s = i;
+    return s;
+  }
+  function pickLine(s) {
+    let i;
+    do { i = Math.floor(Math.random() * LINES[s].length); } while (i === lastLine[s]);
+    lastLine[s] = i;
+    return LINES[s][i];
+  }
+
+  // ---------- 레이아웃 ----------
+  function initRope() {
+    pts = [];
+    for (let i = 0; i < N; i++) {
+      const x = rest.x, y = rest.y + i * segLen;
+      pts.push({ x, y, px: x, py: y });
+    }
+    handle.x = rest.x; handle.y = rest.y; handle.vx = 0; handle.vy = 0;
+  }
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight; U = Math.min(W, H);
+    canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    rest.x = W / 2; rest.y = H * 0.38;
+    segLen = (H * 0.40) / N;
+    initRope();
+  }
+  window.addEventListener('resize', resize);
+
+  // ---------- 소리 ----------
+  let ac = null, noiseBuf = null;
+  function initAudio() {
+    if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      ac = new AC();
+      const len = Math.floor(ac.sampleRate * 0.3);
+      noiseBuf = ac.createBuffer(1, len, ac.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    } catch (e) { ac = null; }
+  }
+  function playCrack(s) {
+    if (!ac) return;
+    try {
+      if (ac.state === 'suspended') ac.resume();
+      const t = ac.currentTime;
+      const vol = 0.45 + 0.55 * s;
+      // '짝' — 고역 노이즈 버스트
+      const src = ac.createBufferSource(); src.buffer = noiseBuf;
+      const hp = ac.createBiquadFilter(); hp.type = 'highpass';
+      hp.frequency.setValueAtTime(900, t);
+      hp.frequency.exponentialRampToValueAtTime(4200, t + 0.05);
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.17);
+      src.connect(hp); hp.connect(g); g.connect(ac.destination);
+      src.start(t); src.stop(t + 0.22);
+      // 저역 타격감
+      const o = ac.createOscillator(); o.type = 'sine';
+      o.frequency.setValueAtTime(170, t);
+      o.frequency.exponentialRampToValueAtTime(48, t + 0.09);
+      const g2 = ac.createGain();
+      g2.gain.setValueAtTime(0.0001, t);
+      g2.gain.exponentialRampToValueAtTime(vol * 0.7, t + 0.006);
+      g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+      o.connect(g2); g2.connect(ac.destination);
+      o.start(t); o.stop(t + 0.14);
+    } catch (e) { /* 무시 */ }
+  }
+  function buzz(s) {
+    try { if (navigator.vibrate) navigator.vibrate(Math.round(30 + 60 * s)); } catch (e) { /* 무시 */ }
+  }
+
+  // ---------- 흔들기 센서 ----------
+  const grav = { x: 0, y: 0, z: 0 };
+  let gravInit = false;
+  function onMotion(e) {
+    let ax, ay, az;
+    const a = e.acceleration;
+    if (a && a.x !== null && a.y !== null) {
+      ax = a.x; ay = a.y; az = a.z || 0;
+    } else {
+      const g = e.accelerationIncludingGravity;
+      if (!g || g.x === null) return;
+      if (!gravInit) { grav.x = g.x; grav.y = g.y; grav.z = g.z || 0; gravInit = true; }
+      const k = 0.9; // 저역통과로 중력 추정 후 제거
+      grav.x = k * grav.x + (1 - k) * g.x;
+      grav.y = k * grav.y + (1 - k) * g.y;
+      grav.z = k * grav.z + (1 - k) * (g.z || 0);
+      ax = g.x - grav.x; ay = g.y - grav.y; az = (g.z || 0) - grav.z;
+    }
+    if (!motionSeen) { motionSeen = true; setHint(); }
+    if (!running) return;
+    const lim = U * 0.36, k2 = U * 0.022;
+    motionOff.x = Math.max(-lim, Math.min(lim, ax * k2));
+    motionOff.y = Math.max(-lim, Math.min(lim, -ay * k2));
+    const mag = Math.sqrt(ax * ax + ay * ay + az * az);
+    const T = 16 * sens; // m/s^2
+    if (mag > T) {
+      const s = Math.min(1, (mag - T) / T);
+      const pl = Math.hypot(ax, ay) || 1;
+      crack(s, ax / pl, -ay / pl, true);
+    }
+  }
+  async function enableMotion() {
+    if (motionOn) return true;
+    if (typeof DeviceMotionEvent === 'undefined') return false;
+    try {
+      if (typeof DeviceMotionEvent.requestPermission === 'function') {
+        const r = await DeviceMotionEvent.requestPermission();
+        if (r !== 'granted') return false;
+      }
+      window.addEventListener('devicemotion', onMotion);
+      motionOn = true;
+      return true;
+    } catch (e) { return false; }
+  }
+  function setHint() {
+    $('hint').textContent = motionSeen
+      ? '폰을 채찍처럼 휘두르세요'
+      : '흔들기 센서가 잡히지 않습니다. 화면을 빠르게 쓸어 휘두르세요';
+  }
+
+  // ---------- 터치 (센서가 없을 때 대체) ----------
+  canvas.addEventListener('pointerdown', (e) => {
+    dragging = true; dragX = e.clientX; dragY = e.clientY;
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* 무시 */ }
+  });
+  canvas.addEventListener('pointermove', (e) => { if (dragging) { dragX = e.clientX; dragY = e.clientY; } });
+  const endDrag = () => { if (dragging) { dragging = false; lastDragEnd = performance.now(); } };
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
+
+  // ---------- 타격 ----------
+  function crack(s, dx, dy, impulse) {
+    const now = performance.now();
+    if (now - lastCrack < 320 || !running) return;
+    lastCrack = now;
+
+    const tip = pts[N - 1];
+    if (impulse) {
+      const p = U * (0.05 + 0.07 * s);
+      for (let i = N - 10; i < N; i++) {
+        const w = (i - (N - 10) + 1) / 10;
+        pts[i].px -= dx * p * w; pts[i].py -= dy * p * w;
+      }
+    }
+    const hx = Math.max(40, Math.min(W - 40, tip.x + dx * U * 0.08));
+    const hy = Math.max(110, Math.min(H - 120, tip.y + dy * U * 0.08));
+
+    flash = 0.35 + 0.4 * s; shake = 6 + 16 * s;
+    const n = 10 + Math.round(14 * s);
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, v = (2 + Math.random() * 7) * (0.6 + s);
+      sparks.push({ x: hx, y: hy, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1 });
+    }
+    pops.push({ x: hx, y: hy, life: 1, rot: (Math.random() - 0.5) * 0.5, size: 34 + 30 * s });
+
+    playCrack(s); buzz(s);
+
+    combo = (now - lastHitAt < 1500) ? combo + 1 : 1;
+    lastHitAt = now;
+    const cEl = $('combo');
+    $('comboNum').textContent = String(combo);
+    if (combo >= 2) {
+      cEl.classList.add('on');
+      cEl.classList.remove('bump'); void cEl.offsetWidth; cEl.classList.add('bump');
+    }
+
+    if (!maxed) {
+      gauge = Math.min(100, gauge + 7 + 12 * s + Math.min(6, combo));
+      if (gauge >= 100) fullGauge();
+    }
+    addBubble(hx, hy);
+    updateHud();
+  }
+  function fullGauge() {
+    maxed = true;
+    const b = $('banner');
+    b.textContent = aiName + ', 정신 차림!';
+    b.classList.add('on');
+    try { if (navigator.vibrate) navigator.vibrate([80, 60, 80, 60, 160]); } catch (e) { /* 무시 */ }
+    setTimeout(() => { b.classList.remove('on'); gauge = 0; maxed = false; updateHud(); }, 2600);
+  }
+  function addBubble(x, y) {
+    const olds = document.querySelectorAll('.bubble');
+    if (olds.length >= 3) olds[0].remove();
+    const el = document.createElement('div');
+    el.className = 'bubble';
+    const who = document.createElement('b'); who.textContent = aiName;
+    const txt = document.createElement('span'); txt.textContent = pickLine(stageIndex());
+    el.appendChild(who); el.appendChild(txt);
+    document.body.appendChild(el);
+    const bw = el.offsetWidth, bh = el.offsetHeight;
+    const left = Math.max(12, Math.min(W - bw - 12, x - bw / 2));
+    const top = Math.max(100, Math.min(H - bh - 90, y - bh - 28));
+    el.style.left = left + 'px'; el.style.top = top + 'px';
+    el.addEventListener('animationend', () => el.remove());
+  }
+  function updateHud() {
+    $('gaugeFill').style.width = gauge.toFixed(1) + '%';
+    $('stageName').textContent = maxed ? '정신 차림' : STAGES[stageIndex()].name;
+    $('who').textContent = aiName;
+  }
+
+  // ---------- 물리 (고정 1/60초 스텝) ----------
+  function step() {
+    const now = performance.now();
+    // 손잡이: 목표점으로 스프링
+    let tx = rest.x + motionOff.x, ty = rest.y + motionOff.y;
+    if (dragging) { tx = dragX; ty = dragY; }
+    handle.vx = (handle.vx + (tx - handle.x) * 0.28) * 0.62;
+    handle.vy = (handle.vy + (ty - handle.y) * 0.28) * 0.62;
+    handle.x += handle.vx; handle.y += handle.vy;
+    motionOff.x *= 0.9; motionOff.y *= 0.9;
+
+    // Verlet 적분
+    const g = segLen * 0.045;
+    for (let i = 1; i < N; i++) {
+      const p = pts[i];
+      const vx = (p.x - p.px) * 0.988, vy = (p.y - p.py) * 0.988;
+      p.px = p.x; p.py = p.y;
+      p.x += vx; p.y += vy + g;
+    }
+    // 길이 제약
+    for (let k = 0; k < 8; k++) {
+      pts[0].x = handle.x; pts[0].y = handle.y;
+      for (let i = 0; i < N - 1; i++) {
+        const a = pts[i], b = pts[i + 1];
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const d = Math.hypot(dx, dy) || 0.0001;
+        const diff = (d - segLen) / d;
+        if (i === 0) { b.x -= dx * diff; b.y -= dy * diff; }
+        else { a.x += dx * diff * 0.5; a.y += dy * diff * 0.5; b.x -= dx * diff * 0.5; b.y -= dy * diff * 0.5; }
+      }
+    }
+    pts[0].px = pts[0].x; pts[0].py = pts[0].y;
+
+    // 터치로 휘두를 때: 끝 속도로 타격 판정
+    if (dragging || now - lastDragEnd < 400) {
+      const t = pts[N - 1];
+      const sx = t.x - t.px, sy = t.y - t.py;
+      const sp = Math.hypot(sx, sy);
+      const S = U * 0.062 * sens;
+      if (sp > S) crack(Math.min(1, (sp - S) / S), sx / sp, sy / sp, false);
+    }
+
+    // 게이지·콤보 감쇠
+    if (!maxed && now - lastHitAt > 1200 && gauge > 0) { gauge = Math.max(0, gauge - 0.09); updateHud(); }
+    if (combo > 0 && now - lastHitAt > 1500) { combo = 0; $('combo').classList.remove('on'); }
+
+    for (let i = sparks.length - 1; i >= 0; i--) {
+      const s = sparks[i];
+      s.x += s.vx; s.y += s.vy; s.vy += 0.25; s.vx *= 0.96; s.life -= 0.035;
+      if (s.life <= 0) sparks.splice(i, 1);
+    }
+    for (let i = pops.length - 1; i >= 0; i--) {
+      pops[i].life -= 0.03;
+      if (pops[i].life <= 0) pops.splice(i, 1);
+    }
+    flash *= 0.84; shake *= 0.86;
+  }
+
+  // ---------- 그리기 ----------
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.save();
+    if (shake > 0.4) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+
+    // 손잡이 (첫 마디의 반대 방향으로)
+    const p0 = pts[0], p1 = pts[1];
+    let hx = p0.x - p1.x, hy = p0.y - p1.y;
+    const hl = Math.hypot(hx, hy) || 1; hx /= hl; hy /= hl;
+    const HL = U * 0.2;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#3b2414'; ctx.lineWidth = 17;
+    ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p0.x + hx * HL, p0.y + hy * HL); ctx.stroke();
+    ctx.strokeStyle = '#6b4424'; ctx.lineWidth = 11;
+    ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p0.x + hx * HL, p0.y + hy * HL); ctx.stroke();
+    ctx.strokeStyle = '#2a1a0e'; ctx.lineWidth = 2; ctx.lineCap = 'butt';
+    for (let i = 1; i <= 5; i++) {
+      const cx = p0.x + hx * HL * (i / 6), cy = p0.y + hy * HL * (i / 6);
+      ctx.beginPath(); ctx.moveTo(cx - hy * 7, cy + hx * 7); ctx.lineTo(cx + hy * 7, cy - hx * 7); ctx.stroke();
+    }
+
+    // 채찍 줄 (끝으로 갈수록 가늘게)
+    ctx.lineCap = 'round';
+    for (let i = 0; i < N - 1; i++) {
+      const t = i / (N - 1);
+      const a = pts[i], b = pts[i + 1];
+      ctx.strokeStyle = '#2a1a0e'; ctx.lineWidth = 9 - 7 * t + 2;
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    }
+    for (let i = 0; i < N - 1; i++) {
+      const t = i / (N - 1);
+      const a = pts[i], b = pts[i + 1];
+      ctx.strokeStyle = t > 0.9 ? '#e8d5b0' : '#9a6632'; ctx.lineWidth = 9 - 7 * t;
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    }
+
+    // 불꽃
+    for (const s of sparks) {
+      ctx.globalAlpha = Math.max(0, s.life);
+      ctx.fillStyle = s.life > 0.5 ? '#ffe9a8' : '#ff7a3c';
+      ctx.beginPath(); ctx.arc(s.x, s.y, 2 + 3 * s.life, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // '짝!'
+    for (const p of pops) {
+      const k = 1 - p.life;
+      ctx.save();
+      ctx.translate(p.x, p.y - k * 30);
+      ctx.rotate(p.rot);
+      const sc = 0.6 + Math.min(1, k * 6) * 0.6;
+      ctx.scale(sc, sc);
+      ctx.globalAlpha = Math.max(0, Math.min(1, p.life * 2));
+      ctx.font = '900 ' + Math.round(p.size) + 'px -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.lineWidth = 8; ctx.strokeStyle = '#14110f'; ctx.lineJoin = 'round';
+      ctx.strokeText('짝!', 0, 0);
+      ctx.fillStyle = '#ff5a36'; ctx.fillText('짝!', 0, 0);
+      ctx.restore();
+    }
+    ctx.restore();
+
+    if (flash > 0.02) {
+      ctx.fillStyle = 'rgba(255,240,220,' + Math.min(0.6, flash).toFixed(3) + ')';
+      ctx.fillRect(0, 0, W, H);
+    }
+  }
+
+  let lastT = 0, acc = 0;
+  const DT = 1000 / 60;
+  function frame(t) {
+    if (!lastT) lastT = t;
+    acc += Math.min(100, t - lastT); lastT = t;
+    let n = 0;
+    while (acc >= DT && n < 5) { step(); acc -= DT; n++; }
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- 시작/설정 ----------
+  const nameIn = $('nameIn');
+  nameIn.value = aiName === 'AI' ? '' : aiName;
+  function markSens() {
+    document.querySelectorAll('#sens button').forEach((b) => {
+      b.classList.toggle('on', Math.abs(parseFloat(b.dataset.s) - sens) < 0.01);
+    });
+  }
+  document.querySelectorAll('#sens button').forEach((b) => {
+    b.addEventListener('click', () => { sens = parseFloat(b.dataset.s); store.set('whip_sens', String(sens)); markSens(); });
+  });
+  markSens();
+
+  $('startBtn').addEventListener('click', async () => {
+    aiName = (nameIn.value || '').trim() || 'AI';
+    store.set('whip_name', aiName === 'AI' ? '' : aiName);
+    initAudio();
+    const ok = await enableMotion();
+    $('overlay').classList.add('hide');
+    running = true;
+    updateHud();
+    if (!ok) { motionSeen = false; setHint(); }
+    else { setTimeout(() => { if (!motionSeen) setHint(); }, 1800); }
+  });
+  $('gearBtn').addEventListener('click', () => { running = false; $('overlay').classList.remove('hide'); });
+
+  resize();
+  updateHud();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
