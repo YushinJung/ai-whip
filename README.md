@@ -1,4 +1,4 @@
-# AI 채찍 (fun-pickle-whiper)
+# AI 채찍 (ai-whip)
 
 AI가 말을 안 들을 때, 컴퓨터는 못 부수겠고… 마음속 분노를 폰으로 휘두르는 안드로이드 장난용 앱.
 
@@ -8,6 +8,10 @@ AI가 말을 안 들을 때, 컴퓨터는 못 부수겠고… 마음속 분노�
 - 설정한 횟수(1/2/3/5번, 기본 3번)만큼 휘둘러 게이지가 다 차면 미리 적어 둔 문구를 그 앱 입력창에 넣는다. 옵션으로 전송 버튼까지 누른다.
 
 특정 AI 서비스와 무관한 개인 제작물이다. Pickle Inc.와 관계없다.
+
+- 소개 페이지: <https://yushinjung.github.io/ai-whip/>
+- 설치 안내: <https://yushinjung.github.io/ai-whip/install-guide.html>
+- 웹에서 바로 해 보기(그림과 소리만): <https://yushinjung.github.io/ai-whip/try/>
 
 ## 동작 방식
 
@@ -32,7 +36,7 @@ AI가 말을 안 들을 때, 컴퓨터는 못 부수겠고… 마음속 분노�
 
 처음 설치한다면 설치 안내를 먼저 본다. 경고 화면마다 무엇을 눌러야 하는지 순서대로 적혀 있다.
 
-- 폰에서 따라 하기: [Releases](../../releases/latest)에서 `install-guide.html`을 먼저 받아 연다. 단계마다 체크하며 따라 할 수 있다.
+- 폰에서 따라 하기: <https://yushinjung.github.io/ai-whip/install-guide.html> 를 연다. 단계마다 체크하며 따라 할 수 있다. 같은 파일이 [Releases](../../releases/latest)에도 있다.
 - 글로 읽기: [docs/INSTALL.md](docs/INSTALL.md). PC로 설치하는 방법도 여기에 있다.
 
 아래는 요약이다.
@@ -79,8 +83,9 @@ GitHub Actions가 `main`에 push할 때마다 APK를 만든다(`.github/workflow
 로컬 빌드: JDK 17 이상, Android SDK(platform 35), Gradle 8.14.3.
 
 ```bash
-gradle :app:assembleDebug
-# 결과: app/build/outputs/apk/debug/app-debug.apk
+gradle :app:assembleRelease
+# 결과: app/build/outputs/apk/release/app-release.apk
+# KEYSTORE_FILE, KEYSTORE_PASSWORD 환경 변수가 없으면 디버그 키로 서명한다.
 ```
 
 ## 확인된 것과 확인되지 않은 것
@@ -95,7 +100,7 @@ gradle :app:assembleDebug
 
 ## 알려진 제한
 
-- 디버그 서명으로 빌드한다. Actions가 만든 APK는 빌드마다 서명이 달라, 새 버전을 깔 때 기존 앱을 지워야 할 수 있다.
+- v0.1.6부터 고정 키로 서명한다. v0.1.5 이하에서 올릴 때는 기존 앱을 한 번 지우고 설치해야 한다. 그 뒤로는 덮어 설치하면 된다.
 - 접근성 권한을 다른 앱 조작에 쓰기 때문에 플레이스토어 등록은 어렵다.
 - 대상 앱의 약관이 자동 입력을 금지할 수 있다. 쓰기 전에 확인한다.
 - 흔들 때 주변 사람과 폰 낙하에 주의한다.
@@ -110,5 +115,6 @@ app/src/main/java/io/github/yushinjung/picklewhip/
   CrackSound.kt     '짝' 소리 합성
   Lines.kt          단계별 대사
   Prefs.kt          설정 저장
-web/index.html      브라우저에서 도는 장난용 버전 (다른 앱에는 영향 없음, 아이폰 가능)
+docs/index.html     소개 페이지 (GitHub Pages)
+docs/try/index.html 브라우저에서 도는 장난용 버전 (다른 앱에는 영향 없음, 아이폰 가능)
 ```
